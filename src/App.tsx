@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import './index.css'
 
 /* ── SVG Icons ── */
@@ -76,6 +76,9 @@ function App() {
   })
 
   const [activeSection, setActiveSection] = useState('home')
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [skillsExpanded, setSkillsExpanded] = useState(false)
+  const [experienceExpanded, setExperienceExpanded] = useState(false)
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', dark)
@@ -83,30 +86,31 @@ function App() {
   }, [dark])
 
   useEffect(() => {
-    const sections = document.querySelectorAll('section[id]')
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            setActiveSection(entry.target.id)
-          }
-        })
-      },
-      { rootMargin: '-40% 0px -55% 0px' }
-    )
-    sections.forEach((s) => observer.observe(s))
-
     const handleScroll = () => {
-      if (window.innerHeight + window.scrollY >= document.body.scrollHeight - 50) {
+      // If at the very bottom, always highlight contact
+      if (window.innerHeight + window.scrollY >= document.body.scrollHeight - 20) {
         setActiveSection('contact')
+        return
       }
-    }
-    window.addEventListener('scroll', handleScroll)
 
-    return () => {
-      observer.disconnect()
-      window.removeEventListener('scroll', handleScroll)
+      const sections = document.querySelectorAll('section[id]')
+      const scrollCenter = window.scrollY + window.innerHeight * 0.35
+      let current = 'home'
+
+      sections.forEach((section) => {
+        const el = section as HTMLElement
+        if (el.offsetTop <= scrollCenter) {
+          current = el.id
+        }
+      })
+
+      setActiveSection(current)
     }
+
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    handleScroll()
+
+    return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
   const navItems = [
@@ -128,7 +132,8 @@ function App() {
           >
             MC
           </a>
-          <div className="flex items-center gap-6 text-sm">
+          {/* Desktop nav */}
+          <div className="hidden sm:flex items-center gap-6 text-sm">
             {navItems.map((item) => (
               <a
                 key={item.id}
@@ -150,7 +155,56 @@ function App() {
               {dark ? <IconSun /> : <IconMoon />}
             </button>
           </div>
+          {/* Mobile hamburger */}
+          <div className="flex sm:hidden items-center gap-3">
+            <button
+              onClick={() => setDark(!dark)}
+              className="text-[var(--text-secondary)] hover:text-[var(--text)] transition-colors cursor-pointer bg-transparent border-none"
+              aria-label="Toggle theme"
+            >
+              {dark ? <IconSun /> : <IconMoon />}
+            </button>
+            <button
+              onClick={() => setMenuOpen(!menuOpen)}
+              className="text-[var(--text)] cursor-pointer bg-transparent border-none"
+              aria-label="Toggle menu"
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                {menuOpen ? (
+                  <>
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </>
+                ) : (
+                  <>
+                    <line x1="3" y1="6" x2="21" y2="6" />
+                    <line x1="3" y1="12" x2="21" y2="12" />
+                    <line x1="3" y1="18" x2="21" y2="18" />
+                  </>
+                )}
+              </svg>
+            </button>
+          </div>
         </div>
+        {/* Mobile menu dropdown */}
+        <CollapsiblePanel open={menuOpen} className="sm:hidden border-t border-[var(--border)] bg-[var(--bg)]">
+          <div className="px-6 py-4 flex flex-col gap-4 text-sm">
+            {navItems.map((item) => (
+              <a
+                key={item.id}
+                href={`#${item.id}`}
+                onClick={() => setMenuOpen(false)}
+                className={`no-underline transition-colors ${
+                  activeSection === item.id
+                    ? 'text-[var(--accent)] font-medium'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text)]'
+                }`}
+              >
+                {item.label}
+              </a>
+            ))}
+          </div>
+        </CollapsiblePanel>
       </nav>
 
       <div className="max-w-[900px] mx-auto px-6 pt-20">
@@ -243,23 +297,69 @@ function App() {
           </div>
 
           {/* Professional Skills (combined) */}
-          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <IconBriefcase className="text-[var(--accent)]" /> Professional Skills
-          </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10">
-            <SkillBar name="Prospecting & Cold Outreach" percent={95} />
-            <SkillBar name="Discovery & Qualification" percent={90} />
-            <SkillBar name="Pitching & Objection Handling" percent={85} />
-            <SkillBar name="Pipeline Tracking" percent={90} />
-            <SkillBar name="Toast Menu & Loyalty Setup" percent={95} />
-            <SkillBar name="SMS/Email Campaigns" percent={95} />
-            <SkillBar name="Staff Training (Toast)" percent={90} />
-            <SkillBar name="KDS/Printer Setup & Reporting" percent={80} />
-            <SkillBar name="Local SEO & Google Business" percent={90} />
-            <SkillBar name="Yelp Ads & Strategy" percent={85} />
-            <SkillBar name="Influencer Outreach" percent={75} />
-            <SkillBar name="Excel & Campaign Planning" percent={90} />
+          <div
+            onClick={() => { if (!skillsExpanded) setSkillsExpanded(true) }}
+            className={!skillsExpanded ? 'cursor-pointer group/skills' : ''}
+          >
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <IconBriefcase className="text-[var(--accent)]" /> Professional Skills
+            </h3>
+
+            {/* Preview rows (always visible) */}
+            <div className="relative">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <SkillBar name="Prospecting & Cold Outreach" percent={95} />
+                <SkillBar name="Discovery & Qualification" percent={90} />
+                <SkillBar name="Pitching & Objection Handling" percent={85} />
+                <SkillBar name="Pipeline Tracking" percent={90} />
+              </div>
+              {/* Fade overlay when collapsed */}
+              {!skillsExpanded && (
+                <div className="absolute bottom-0 left-0 right-0 h-32 sm:h-20 bg-gradient-to-t from-[var(--bg)] via-[var(--bg)]/70 to-transparent pointer-events-none" />
+              )}
+            </div>
+
+            {/* Remaining rows (expandable) */}
+            <CollapsiblePanel open={skillsExpanded} className="">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
+                <SkillBar name="Toast Menu & Loyalty Setup" percent={95} />
+                <SkillBar name="SMS/Email Campaigns" percent={95} />
+                <SkillBar name="Staff Training (Toast)" percent={90} />
+                <SkillBar name="KDS/Printer Setup & Reporting" percent={80} />
+                <SkillBar name="Local SEO & Google Business" percent={90} />
+                <SkillBar name="Yelp Ads & Strategy" percent={85} />
+                <SkillBar name="Influencer Outreach" percent={75} />
+                <SkillBar name="Excel & Campaign Planning" percent={90} />
+              </div>
+            </CollapsiblePanel>
+            {/* Open arrow (inside clickable area, glows on hover of whole section) */}
+            {!skillsExpanded && (
+              <div className="flex items-center justify-center mt-4 mb-10">
+                <svg
+                  className="text-[var(--accent)] group-hover/skills:text-[var(--accent-light)] transition-all duration-300 animate-bob"
+                  width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                >
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </div>
+            )}
           </div>
+
+          {/* Close arrow (only when expanded, only arrow is clickable) */}
+          {skillsExpanded && (
+            <button
+              onClick={() => setSkillsExpanded(false)}
+              className="flex items-center justify-center mx-auto mt-4 mb-10 bg-transparent border-none cursor-pointer group"
+              aria-label="Show less"
+            >
+              <svg
+                className="text-[var(--accent)] group-hover:text-[var(--accent-light)] transition-all duration-300 rotate-180"
+                width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+              >
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </button>
+          )}
 
           {/* Always Learning blurb */}
           <div className="p-6 rounded-2xl bg-[var(--bg-warm)] mt-4">
@@ -279,51 +379,96 @@ function App() {
           <h2 className="text-3xl font-semibold mb-2">Experience</h2>
           <p className="text-[var(--text-secondary)] text-sm mb-10">Where I've made an impact</p>
 
-          <div className="space-y-8">
-            <ExperienceCard
-              company="MAMO MARKETING"
-              role="Co-Founder / Consultant & Restaurant Growth (Toast)"
-              location="San Diego, CA"
-              date="Dec 2025 – Present"
-              highlights={[
-                'Drove $67,389 in attributable sales via Toast SMS/Email over 60 days at 25x+ ROI.',
-                'Delivered 8.95x ROI on Google Ads, driving ~168,000 impressions over 60 days.',
-                'Scaled Yelp Ads to ~49,700 impressions over 2 months (~50% of total profile visits).',
-                'Onboard Toast restaurants: menus, modifiers, pricing, loyalty, KDS workflows.',
-                'Run trilingual outbound outreach (Mandarin/Cantonese/English) to prospect and qualify restaurants.',
-              ]}
-            />
-            <ExperienceCard
-              company="NA TART"
-              role="Operations Manager | Toast + Growth"
-              location="San Diego, CA"
-              date="May 2024 – Present"
-              highlights={[
-                'Increased daily revenue from $1,500–$2,000 to $3,500–$4,000 in ~4 months.',
-                'Boosted ad CTR from 0.65% to 2.45% over 90 days through offer testing and audience targeting.',
-                'Improved 60-day repeat guest rate from 12% to 16% with better incentives and messaging.',
-                'Negotiated catering commission reduction from 25% to 20% (ezCater, Foodja).',
-              ]}
-            />
-            <ExperienceCard
-              company="Pho Hut & Grill"
-              role="Marketing & Operations (Toast)"
-              location="San Diego, CA"
-              date="Dec 2024 – Dec 2025"
-              highlights={[
-                'Increased daily revenue from $2,500–$3,000 to $4,000–$5,000.',
-                'Delivered 6.40x ROI on Google Ads (Sep–Dec 2025).',
-                'Grew email subscribers from 0 to 2,387; loyalty members from 3,527 to 7,092.',
-                'Improved 60-day repeat rate from 21% to 28.7% through segmentation and reactivation.',
-              ]}
-            />
+          <div
+            onClick={() => { if (!experienceExpanded) setExperienceExpanded(true) }}
+            className={!experienceExpanded ? 'cursor-pointer group/exp' : ''}
+          >
+            {/* Preview (first card always visible) */}
+            <div className="relative">
+              <div className="space-y-8">
+                <ExperienceCard
+                  company="MAMO MARKETING"
+                  role="Co-Founder / Consultant & Restaurant Growth (Toast)"
+                  location="San Diego, CA"
+                  date="Dec 2025 – Present"
+                  highlights={[
+                    'Drove $67,389 in attributable sales via Toast SMS/Email over 60 days at 25x+ ROI.',
+                    'Delivered 8.95x ROI on Google Ads, driving ~168,000 impressions over 60 days.',
+                    'Scaled Yelp Ads to ~49,700 impressions over 2 months (~50% of total profile visits).',
+                    'Onboard Toast restaurants: menus, modifiers, pricing, loyalty, KDS workflows.',
+                    'Run trilingual outbound outreach (Mandarin/Cantonese/English) to prospect and qualify restaurants.',
+                  ]}
+                />
+              </div>
+              {!experienceExpanded && (
+                <div className="absolute bottom-0 left-0 right-0 h-32 sm:h-20 bg-gradient-to-t from-[var(--bg)] via-[var(--bg)]/70 to-transparent pointer-events-none" />
+              )}
+            </div>
+
+            {/* Remaining cards (expandable) */}
+            <CollapsiblePanel open={experienceExpanded} className="">
+              <div className="space-y-8 pt-8">
+                <ExperienceCard
+                  company="NA TART"
+                  role="Operations Manager | Toast + Growth"
+                  location="San Diego, CA"
+                  date="May 2024 – Present"
+                  highlights={[
+                    'Increased daily revenue from $1,500–$2,000 to $3,500–$4,000 in ~4 months.',
+                    'Boosted ad CTR from 0.65% to 2.45% over 90 days through offer testing and audience targeting.',
+                    'Improved 60-day repeat guest rate from 12% to 16% with better incentives and messaging.',
+                    'Negotiated catering commission reduction from 25% to 20% (ezCater, Foodja).',
+                  ]}
+                />
+                <ExperienceCard
+                  company="Pho Hut & Grill"
+                  role="Marketing & Operations (Toast)"
+                  location="San Diego, CA"
+                  date="Dec 2024 – Dec 2025"
+                  highlights={[
+                    'Increased daily revenue from $2,500–$3,000 to $4,000–$5,000.',
+                    'Delivered 6.40x ROI on Google Ads (Sep–Dec 2025).',
+                    'Grew email subscribers from 0 to 2,387; loyalty members from 3,527 to 7,092.',
+                    'Improved 60-day repeat rate from 21% to 28.7% through segmentation and reactivation.',
+                  ]}
+                />
+                {/* Education */}
+                <div className="p-6 rounded-2xl bg-[var(--bg-warm)]">
+                  <h3 className="text-lg font-semibold mb-1">UC San Diego</h3>
+                  <p className="text-sm text-[var(--text-secondary)]">B.S. Business Economics · Sep 2023 – June 2025</p>
+                </div>
+              </div>
+            </CollapsiblePanel>
+
+            {/* Open arrow */}
+            {!experienceExpanded && (
+              <div className="flex items-center justify-center mt-4">
+                <svg
+                  className="text-[var(--accent)] group-hover/exp:text-[var(--accent-light)] transition-all duration-300 animate-bob"
+                  width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                >
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </div>
+            )}
           </div>
 
-          {/* Education */}
-          <div className="mt-12 p-6 rounded-2xl bg-[var(--bg-warm)]">
-            <h3 className="text-lg font-semibold mb-1">UC San Diego</h3>
-            <p className="text-sm text-[var(--text-secondary)]">B.S. Business Economics · Sep 2023 – June 2025</p>
-          </div>
+          {/* Close arrow */}
+          {experienceExpanded && (
+            <button
+              onClick={() => setExperienceExpanded(false)}
+              className="flex items-center justify-center mx-auto mt-4 bg-transparent border-none cursor-pointer group"
+              aria-label="Show less"
+            >
+              <svg
+                className="text-[var(--accent)] group-hover:text-[var(--accent-light)] transition-all duration-300 rotate-180"
+                width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+              >
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </button>
+          )}
+
         </section>
 
         {/* Contact */}
@@ -438,6 +583,28 @@ function SkillBar({ name, percent }: { name: string; percent: number }) {
           className="h-full rounded-full bg-[var(--accent)] transition-all duration-500"
           style={{ width: `${percent}%` }}
         />
+      </div>
+    </div>
+  )
+}
+
+function CollapsiblePanel({ open, className = '', children }: { open: boolean; className?: string; children: React.ReactNode }) {
+  const contentRef = useRef<HTMLDivElement>(null)
+  const [height, setHeight] = useState(0)
+
+  useEffect(() => {
+    if (contentRef.current) {
+      setHeight(contentRef.current.scrollHeight)
+    }
+  }, [open, children])
+
+  return (
+    <div
+      className={`overflow-hidden transition-all duration-300 ease-in-out ${className}`}
+      style={{ maxHeight: open ? `${height}px` : '0px', opacity: open ? 1 : 0 }}
+    >
+      <div ref={contentRef}>
+        {children}
       </div>
     </div>
   )
