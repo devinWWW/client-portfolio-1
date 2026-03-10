@@ -95,7 +95,18 @@ function App() {
       { rootMargin: '-40% 0px -55% 0px' }
     )
     sections.forEach((s) => observer.observe(s))
-    return () => observer.disconnect()
+
+    const handleScroll = () => {
+      if (window.innerHeight + window.scrollY >= document.body.scrollHeight - 50) {
+        setActiveSection('contact')
+      }
+    }
+    window.addEventListener('scroll', handleScroll)
+
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('scroll', handleScroll)
+    }
   }, [])
 
   const navItems = [
