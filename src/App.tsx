@@ -59,14 +59,6 @@ function IconMail({ className = '' }: { className?: string }) {
   )
 }
 
-function IconPhone({ className = '' }: { className?: string }) {
-  return (
-    <svg className={className} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
-    </svg>
-  )
-}
-
 function IconLinkedIn({ className = '' }: { className?: string }) {
   return (
     <svg className={className} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -234,9 +226,9 @@ function App() {
             <IconGlobe className="text-[var(--accent)]" /> Languages
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-12">
-            <LanguageCard name="English" level={4} />
-            <LanguageCard name="Mandarin" level={4} />
-            <LanguageCard name="Cantonese" level={4} />
+            <LanguageCard name="English" level={4.5} />
+            <LanguageCard name="Mandarin" level={5} />
+            <LanguageCard name="Cantonese" level={5} />
           </div>
 
           {/* Professional Skills (combined) */}
@@ -402,14 +394,25 @@ function LanguageCard({ name, level }: { name: string; level: number }) {
     <div className="p-4 rounded-xl bg-[var(--bg-card)] border border-[var(--border)]">
       <p className="text-sm font-medium mb-2">{name}</p>
       <div className="flex gap-1.5">
-        {[1, 2, 3, 4, 5].map((i) => (
-          <div
-            key={i}
-            className={`w-3.5 h-3.5 rounded-full ${
-              i <= level ? 'bg-[var(--accent)]' : 'bg-[var(--border)]'
-            }`}
-          />
-        ))}
+        {[1, 2, 3, 4, 5].map((i) => {
+          const filled = i <= Math.floor(level)
+          const half = !filled && i === Math.ceil(level) && level % 1 !== 0
+          return (
+            <div
+              key={i}
+              className={`w-3.5 h-3.5 rounded-full overflow-hidden ${
+                filled ? 'bg-[var(--accent)]' : half ? '' : 'bg-[var(--border)]'
+              }`}
+            >
+              {half && (
+                <div className="flex w-full h-full">
+                  <div className="w-1/2 h-full bg-[var(--accent)]" />
+                  <div className="w-1/2 h-full bg-[var(--border)]" />
+                </div>
+              )}
+            </div>
+          )
+        })}
       </div>
     </div>
   )
