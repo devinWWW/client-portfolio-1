@@ -212,7 +212,7 @@ function App() {
         <section id="home" className="min-h-[90vh] flex flex-col items-center justify-center text-center py-20">
           <div className="w-40 h-40 rounded-full overflow-hidden border-4 border-[var(--accent)]/30 shadow-lg mb-6">
             <img
-              src="/portrait.png"
+              src="/portraitnew.png"
               alt="Mandy Chum"
               className="w-full h-full object-cover object-top"
             />
